@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elegance Store | حاسبة السعر</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --text:#eaf0ff;
+      --muted:#b8c3e6;
+      --border:rgba(255,255,255,.10);
+      --accent:#7aa2ff;
+      --accent2:#00d4ff;
+      --ok:#46e6a3;
+      --danger:#ff5c7a;
+      --radius:18px;
+      --shadow:0 18px 60px rgba(0,0,0,.45);
+    }
+
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:18px;
+      background:
+        radial-gradient(900px 600px at 10% 10%, rgba(122,162,255,.22), transparent 60%),
+        radial-gradient(900px 600px at 90% 20%, rgba(0,212,255,.16), transparent 55%),
+        linear-gradient(180deg, var(--bg), #050914);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .wrap{width:min(680px, 100%);}
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px;
+      margin-bottom:14px;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(122,162,255,.16), rgba(0,212,255,.10));
+      border:1px solid var(--border);
+    }
+
+    .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:20px;
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    input, select{
+      width:100%;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(5,9,20,.55);
+      color:var(--text);
+      margin-bottom:12px;
+    }
+
+    button{
+      padding:12px 16px;
+      border:none;
+      border-radius:14px;
+      font-weight:bold;
+      cursor:pointer;
+      margin-right:6px;
+    }
+
+    .btnPrimary{
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#07101f;
+    }
+
+    .btnGhost{
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+
+    .btnCopy{
+      background:rgba(70,230,163,.14);
+      color:var(--text);
+      border:1px solid rgba(70,230,163,.32);
+    }
+
+    .result{
+      margin-top:18px;
+      padding:14px;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(122,162,255,.14), rgba(0,212,255,.10));
+      border:1px solid rgba(122,162,255,.35);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .toast{
+      margin-top:10px;
+      font-size:.9rem;
+      color:var(--ok);
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <div class="logo">
+    <div class="dot"></div>
+    <div>
+      <b>Elegance Store</b><br>
+      <small style="color:var(--muted)">Customer Price Calculator</small>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <label for="usd">سعر المنتج بالدولار ($)</label>
+    <input id="usd" type="number" step="0.01" placeholder="مثال: 39.99">
+
+    <div style="margin-bottom:14px;font-size:0.85rem;color:var(--muted)">
+      سعر المنتج بعد وضعه في السلة<br>
+      "سعره بالكوبون"
+    </div>
+
+    <label for="type">نوع المنتج</label>
+    <select id="type">
+      <option value="dress">فستان</option>
+      <option value="shoes">حذاء</option>
+      <option value="bag">حقيبة</option>
+      <option value="acc">اكسسوارات وأظافر</option>
+      <option value="makeup">مكياج</option>
+      <option value="kids">ملابس أطفال</option>
+    </select>
+
+    <label for="size">المقاس</label>
+    <select id="size">
+      <option>S</option>
+      <option>M</option>
+      <option>L</option>
+      <option>XL</option>
+      <option>1XL</option>
+      <option>2XL</option>
+      <option>3XL</option>
+      <option>4XL</option>
+    </select>
+
+    <button class="btnPrimary" onclick="calculate()">احسب السعر</button>
+    <button class="btnGhost" onclick="resetAll()">مسح</button>
+    <button class="btnCopy" onclick="copyFinal()">نسخ السعر النهائي</button>
+
+    <div class="result">
+      <span>السعر النهائي</span>
+      <b id="final">—</b>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+const EXCHANGE_RATE = 10.5;
+
+const FIXED_SHIPPING = {
+  shoes:25,
+  bag:20,
+  acc:5,
+  makeup:7.5,
+  kids:15
+};
+
+function roundToNearest5(value){
+  return Math.round(value/5)*5;
+}
+
+function dressShipping(size){
+  if(size==="S"||size==="M"||size==="L") return 25;
+  if(size==="XL"||size==="1XL"||size==="2XL") return 30;
+  if(size==="3XL"||size==="4XL") return 40;
+  return 25;
+}
+
+function calculate(){
+
+  const usd=parseFloat(document.getElementById("usd").value);
+  const type=document.getElementById("type").value;
+  const size=document.getElementById("size").value;
+
+  if(!usd || usd<=0){
+    document.getElementById("toast").innerText="أدخل سعر صحيح.";
+    return;
+  }
+
+  let shipping=0;
+
+  if(type==="dress"){
+    shipping=dressShipping(size);
+    if(usd>30) shipping+=10;
+  }else{
+    shipping=FIXED_SHIPPING[type];
+  }
+
+  const total=(usd*EXCHANGE_RATE)+shipping;
+  const final=roundToNearest5(total);
+
+  document.getElementById("final").innerText=final+" د.ل";
+  document.getElementById("toast").innerText="تم الحساب ✅";
+}
+
+function resetAll(){
+  document.getElementById("usd").value="";
+  document.getElementById("final").innerText="—";
+  document.getElementById("toast").innerText="";
+}
+
+function copyFinal(){
+  const text=document.getElementById("final").innerText;
+  if(text==="—") return;
+  navigator.clipboard.writeText(text);
+  document.getElementById("toast").innerText="تم النسخ ✅";
+}
+
+</script>
+
+</body>
+</html>
